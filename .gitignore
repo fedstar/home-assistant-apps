@@ -1,2 +1,6 @@
 /.DS_Store
 .DS_Store
+litter-robot-proxy/captures/
+litter-robot-proxy/*.log
+litter-robot-proxy/*.jsonl
+litter-robot-proxy/actions.csv

@@ -1,5 +1,10 @@
 # Changelog
 
+# 1.3.0
+
+- Added opt-in lossless UDP capture of robot and server packets in `/data/captures/packets.jsonl` for LR3 protocol analysis. Capture does not transmit commands or change the existing relay.
+- Capture records UTC timestamps, source and destination, exact payload hex, decoded text, and tentative command, device ID, sequence, and checksum fields.
+
 # 1.2.5
 - Added additional error code states
 

@@ -1,10 +1,10 @@
 # Litter Robot Proxy — Home Assistant App
 
-This is a local MQTT proxy for **Litter Robot 3 Connect** devices. It intercepts UDP communication between your robots and Whisker's servers, publishing real-time status to Home Assistant via MQTT Discovery — no cloud dependency, no polling, no API credentials required.
+This is a local MQTT proxy for **Litter Robot 3 Connect** devices. It intercepts UDP communication between your robots and Whisker's servers and publishes status to Home Assistant via MQTT Discovery without polling the Whisker API. Whisker app control still uses the cloud.
 
 ## How it works
 
-Your Litter Robot 3 connects to Whisker's servers at `dispatch.prod.iothings.site` on UDP port 2001. This app sits in the middle:
+The DNS rewrite directs the robot's traffic for `dispatch.prod.iothings.site` to this app. The app listens on UDP ports 2000 and 2001 and sits in the middle:
 
 ```
 LR3 → (DNS rewrite) → This app → Whisker servers (upstream relay)
@@ -25,7 +25,7 @@ The robots continue communicating with Whisker normally — the Whisker app keep
 
 1. In Home Assistant, go to **Settings → Apps → Install App**
 2. Click the **⋮** menu → **Repositories**
-3. Add this repository URL
+3. Add this repository URL: `https://github.com/fedstar/home-assistant-apps`
 4. Find **Litter Robot Proxy** and click **Install**
 
 ## Required: DNS Rewrite
@@ -50,6 +50,7 @@ mqtt_port: 1883
 mqtt_user: ""                  # Your MQTT username
 mqtt_pass: ""                  # Your MQTT password
 offline_threshold: 600         # Seconds before a robot is marked offline (default: 10 min)
+capture_packets: false         # Optional protocol capture; see below
 robots:
   - name: "Litter Robot 1"    # Friendly name shown in Home Assistant
     ip: "192.168.1.101"       # Static IP of this robot on your network
@@ -62,7 +63,7 @@ robots:
 
 > **Tip:** Assign static DHCP leases to your Litter Robots in your router so their IPs never change.
 
-> **Note:** If you don't configure any robots, the app will still work — it auto-discovers robots from traffic and names them by their device ID. Adding them by IP just gives them friendly names.
+> **Note:** At least one robot IP and name are required by the current app configuration. Device IDs are learned from traffic if omitted.
 
 ## Entities created per robot
 
@@ -99,6 +100,22 @@ To calibrate per robot:
 ## Offline detection
 
 If a robot stops reporting for longer than `offline_threshold` seconds (default 10 minutes), its Status sensor changes to `Offline` and the Error binary sensor turns on. When the robot comes back online, status updates automatically.
+
+## Experimental protocol capture
+
+Set `capture_packets: true` in the app configuration and restart the app to
+record LR3 UDP packets for local-control research. The capture is **off by
+default**. It only observes traffic; the app remains a monitoring proxy and
+does not send local control commands.
+
+Exact packet bytes, timestamps, endpoints, and tentative parsed fields are
+written to the app's private `/data/captures/packets.jsonl` file. The file is
+limited to 20 MiB and five rotated backups. Server command packets also appear
+in the app log as `LR3_CAPTURE` JSON lines. You can copy those lines from the
+app log and inspect them with `python3 capture_inspect.py app.log`. See
+[REVERSE_ENGINEERING.md](REVERSE_ENGINEERING.md) for the night-light experiment
+and annotation format. Review captures before sharing them: they include robot
+device identifiers.
 
 ## Troubleshooting
 

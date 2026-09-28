@@ -1,6 +1,6 @@
 name: "Litter Robot Proxy"
 description: "Local MQTT proxy for Litter Robot 3 Connect devices. Intercepts device communication and publishes real-time status to Home Assistant via MQTT Discovery."
-version: "1.2.5"
+version: "1.3.0"
 slug: "litter_robot_proxy"
 init: false
 arch:
@@ -23,6 +23,7 @@ options:
   mqtt_user: ""
   mqtt_pass: ""
   offline_threshold: 600
+  capture_packets: false
   robots: []
 schema:
   mqtt_host: str
@@ -30,6 +31,7 @@ schema:
   mqtt_user: str
   mqtt_pass: str
   offline_threshold: int
+  capture_packets: bool
   robots:
     - name: str
       ip: str

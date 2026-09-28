@@ -16,6 +16,7 @@ import sys
 import re
 
 import paho.mqtt.client as mqtt
+from packet_capture import PacketCapture
 
 def slugify(name):
     """Convert a friendly name like 'Litter Robot 1' → 'litter_robot_1'"""
@@ -28,6 +29,7 @@ MQTT_PORT          = int(os.environ.get("MQTT_PORT", 1883))
 MQTT_USER          = os.environ.get("MQTT_USER", "") or None
 MQTT_PASS          = os.environ.get("MQTT_PASS", "") or None
 OFFLINE_THRESHOLD  = int(os.environ.get("OFFLINE_THRESHOLD", 600))
+CAPTURE_PACKETS    = os.environ.get("CAPTURE_PACKETS", "false").lower() == "true"
 
 OPTIONS_FILE  = "/data/options.json"
 CYCLES_FILE   = "/data/cycles.json"
@@ -180,6 +182,16 @@ robot_offline_published = {}   # device_id → bool
 discovery_published     = {}   # device_id → bool
 last_status             = {}   # device_id → raw status code
 suppress_until          = {}   # device_id → timestamp (for power cycle boots)
+packet_capture          = PacketCapture(enabled=CAPTURE_PACKETS)
+
+def record_packet(direction, raw_data, source, destination, ingress_port):
+    """Capture must never break the existing packet relay."""
+    try:
+        record = packet_capture.record(direction, raw_data, source, destination, ingress_port)
+        if record and direction == "server_to_robot" and record["fields"]["kind"] == "command":
+            print("LR3_CAPTURE %s" % json.dumps(record, separators=(",", ":")))
+    except Exception as e:
+        print("%s CAPTURE WARNING: %s" % (datetime.datetime.now().isoformat(), e))
 
 # ─── MQTT ─────────────────────────────────────────────────────────────────────
 
@@ -496,6 +508,7 @@ def handle_from_robot(raw_data, addr):
     try:
         msg = raw_data.strip().decode()
     except:
+        record_packet("unknown_inbound_2001", raw_data, addr, None, PORT_LITTER)
         print("handle_from_robot: error parsing data from %s" % str(addr))
         sock_litter.sendto(raw_data, (HOST_SERVER, 2001))
         return
@@ -504,8 +517,10 @@ def handle_from_robot(raw_data, addr):
 
     # Because of NAT, Whisker's replies hit sock_litter (2001) instead of sock_server (2000)
     if parts[0] in ("AOK", "NOK") or len(parts) == 5:
-        handle_from_server(raw_data, addr)
+        handle_from_server(raw_data, addr, ingress_port=PORT_LITTER)
         return
+
+    record_packet("robot_to_server", raw_data, addr, (HOST_SERVER, 2001), PORT_LITTER)
 
     # --- Local AOK Spoofing ---
     if len(parts) >= 2 and parts[0].startswith('>LR3'):
@@ -628,10 +643,11 @@ def handle_from_robot(raw_data, addr):
     except Exception as e:
         print("%s ERROR: Failed to relay to upstream server: %s" % (datetime.datetime.now().isoformat(), str(e)))
 
-def handle_from_server(raw_data, addr):
+def handle_from_server(raw_data, addr, ingress_port=PORT_SERVER):
     try:
         msg = raw_data.strip().decode()
     except:
+        record_packet("server_to_robot", raw_data, addr, None, ingress_port)
         print("handle_from_server: error parsing data from %s" % str(addr))
         return
 
@@ -647,6 +663,9 @@ def handle_from_server(raw_data, addr):
         target_addr = robot_addresses.get(device_id)
         # Log the actual AOK/NOK response from the Whisker cloud
         print("%-27s %-16s %5d FROM_SERVER     %s" % (datetime.datetime.now().isoformat(), addr[0], addr[1], msg))
+
+    destination = (target_addr[0], PORT_SERVER) if target_addr else None
+    record_packet("server_to_robot", raw_data, addr, destination, ingress_port)
 
     if target_addr:
         try:
@@ -668,6 +687,7 @@ print("Litter Robot Proxy started")
 print("Listening on UDP ports %d (robots) and %d (server responses)" % (PORT_LITTER, PORT_SERVER))
 print("Relaying upstream to %s" % HOST_SERVER)
 print("Offline threshold: %ds" % OFFLINE_THRESHOLD)
+print("Packet capture: %s" % ("enabled at %s" % packet_capture.path if CAPTURE_PACKETS else "disabled"))
 if robot_name_map:
     print("Configured robots:")
     for ip, name in robot_name_map.items():
@@ -711,6 +731,6 @@ while True:
         continue
 
     for r in read:
-        data, addr = r.recvfrom(1024)
+        data, addr = r.recvfrom(65535)
         if   r == sock_litter: handle_from_robot(data, addr)
         elif r == sock_server: handle_from_server(data, addr)

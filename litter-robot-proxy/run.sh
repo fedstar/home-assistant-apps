@@ -5,6 +5,7 @@ export MQTT_PORT=$(bashio::config 'mqtt_port')
 export MQTT_USER=$(bashio::config 'mqtt_user')
 export MQTT_PASS=$(bashio::config 'mqtt_pass')
 export OFFLINE_THRESHOLD=$(bashio::config 'offline_threshold')
+export CAPTURE_PACKETS=$(bashio::config 'capture_packets')
 
 bashio::log.info "Starting Litter Robot Proxy..."
 bashio::log.info "MQTT Host: ${MQTT_HOST}:${MQTT_PORT}"
