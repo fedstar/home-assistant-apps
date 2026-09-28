@@ -13,10 +13,14 @@ not on a confirmed local experiment.
 This approach only applies if these specific robots use the older plaintext
 UDP dispatch protocol. [A separate LR3 firmware investigation](https://www.elttam.com/blog/re-of-lr3)
 found an AWS IoT/TLS variant. The HA integration's "Litter-Robot 3" model label
-does not establish which network protocol either physical unit uses. Before
+does not establish which network protocol a physical unit uses. An AdGuard DNS
+record from the owner's `LR3-1` now matches the AWS IoT endpoint in that
+investigation. This strongly indicates that `LR3-1` uses the TLS variant; DNS
+alone does not establish the transport or certificate behavior. Before
 redirecting DNS, check whether each robot actually queries
 `dispatch.prod.iothings.site` (or another legacy dispatch host) and sends UDP
-traffic. A TLS-only unit needs a different approach.
+traffic. Do not redirect `LR3-1` to this UDP proxy. The second robot has not yet
+been classified.
 
 ## Known packet shape and uncertainties
 
@@ -89,3 +93,4 @@ Errors writing a capture are logged and do not stop packet forwarding.
 | Date | Observation | Status |
 | --- | --- | --- |
 | 2026-09-27 | Fork cloned and capture code added; no robot packet sample yet. | Code only |
+| 2026-09-27 | Owner's AdGuard log shows `LR3-1` queried an AWS IoT endpoint matching the published LR3 onboarding analysis. IP and full endpoint intentionally omitted here. | Strong evidence for TLS variant; no packet capture |
