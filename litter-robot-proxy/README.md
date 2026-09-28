@@ -20,6 +20,9 @@ The robots continue communicating with Whisker normally — the Whisker app keep
 
 - **Mosquitto broker** app installed in Home Assistant.
 - **AdGuard Home** (or another local DNS server) to redirect robot DNS queries. *This might also be possible directly on your router, if you know how.*
+- A robot using the older plaintext UDP dispatch protocol. Some LR3 hardware
+  uses AWS IoT/TLS instead; confirm the robot's DNS and traffic before adding
+  the rewrite. See [REVERSE_ENGINEERING.md](REVERSE_ENGINEERING.md).
 
 ## Installation
 

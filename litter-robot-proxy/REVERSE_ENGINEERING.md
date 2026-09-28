@@ -10,6 +10,14 @@ No packets from Fedor's robots have been analyzed yet. The command and checksum
 fields below are based on [an earlier LR3 protocol investigation](https://github.com/mbafford/litter-robot-to-mqtt),
 not on a confirmed local experiment.
 
+This approach only applies if these specific robots use the older plaintext
+UDP dispatch protocol. [A separate LR3 firmware investigation](https://www.elttam.com/blog/re-of-lr3)
+found an AWS IoT/TLS variant. The HA integration's "Litter-Robot 3" model label
+does not establish which network protocol either physical unit uses. Before
+redirecting DNS, check whether each robot actually queries
+`dispatch.prod.iothings.site` (or another legacy dispatch host) and sends UDP
+traffic. A TLS-only unit needs a different approach.
+
 ## Known packet shape and uncertainties
 
 - A server command appears as `<COMMAND,LR3,DEVICE_ID,SEQUENCE,CHECKSUM`.
@@ -40,7 +48,8 @@ Errors writing a capture are logged and do not stop packet forwarding.
 
 ## First experiment
 
-1. Run the updated proxy with `capture_packets: true` and keep Internet access
+1. Confirm the selected robot uses the legacy UDP dispatch host. Then run the
+   updated proxy with `capture_packets: true` and keep Internet access
    so the Whisker app or HA integration can generate legitimate commands.
 2. Confirm both robots continue reporting status and that the Whisker app still
    works.
