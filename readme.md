@@ -6,7 +6,7 @@ Custom Home Assistant repository for my custom apps.
 
 1. In Home Assistant, go to **Settings → Apps → Install App**
 2. Click the **⋮** menu → **Repositories**
-3. Add this repository URL: https://github.com/adamjthompson/home-assistant-apps
+3. Add this repository URL: https://github.com/fedstar/home-assistant-apps
 4. Find the desired app in the store and click **Install**
 
 ## Apps included
